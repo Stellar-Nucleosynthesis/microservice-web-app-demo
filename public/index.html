@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>URL Shortener</title>
+    <style>
+        :root {
+            --bg: #f7f7f8;
+            --panel: rgba(255, 255, 255, 0.82);
+            --panel-border: rgba(0, 0, 0, 0.08);
+            --text: #111827;
+            --muted: #6b7280;
+            --accent: #111827;
+            --accent-hover: #000000;
+            --success-bg: #ecfdf3;
+            --success-text: #047857;
+            --error-bg: #fef2f2;
+            --error-text: #b91c1c;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            --radius: 20px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at top left, rgba(17, 24, 39, 0.06), transparent 30%),
+            radial-gradient(circle at bottom right, rgba(17, 24, 39, 0.04), transparent 25%),
+            var(--bg);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 760px;
+        }
+
+        .header {
+            margin-bottom: 20px;
+            padding: 8px 4px;
+        }
+
+        .title {
+            font-size: 2rem;
+            line-height: 1.1;
+            margin: 0 0 8px;
+            letter-spacing: -0.04em;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.98rem;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 22px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .section {
+            padding: 18px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.55);
+        }
+
+        .section h2 {
+            margin: 0 0 12px;
+            font-size: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .input-row {
+            display: grid;
+            gap: 10px;
+        }
+
+        input {
+            width: 100%;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font: inherit;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.9);
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        }
+
+        input::placeholder {
+            color: #9ca3af;
+        }
+
+        input:focus {
+            border-color: rgba(17, 24, 39, 0.35);
+            box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.08);
+        }
+
+        button {
+            border: 0;
+            border-radius: 14px;
+            padding: 14px 16px;
+            font: inherit;
+            font-weight: 600;
+            color: white;
+            background: var(--accent);
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 8px 20px rgba(17, 24, 39, 0.16);
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .link {
+            color: inherit;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(17, 24, 39, 0.25);
+        }
+
+        .link:hover {
+            border-bottom-color: rgba(17, 24, 39, 0.7);
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 14px;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 18px;
+            }
+
+            .section {
+                padding: 14px;
+            }
+
+            .title {
+                font-size: 1.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<main class="container">
+    <div class="header">
+        <h1 class="title">URL Shortener</h1>
+        <p class="subtitle">Create a short link and check its usage.</p>
+    </div>
+
+    <section class="card grid">
+        <div class="section">
+            <h2>Create short URL</h2>
+            <div class="input-row">
+                <input id="urlInput" type="text" placeholder="Paste a URL, for example: google.com"/>
+                <button onclick="shorten()">Shorten</button>
+            </div>
+            <div class="result" id="shortResult"></div>
+        </div>
+
+        <div class="section">
+            <h2>Get stats</h2>
+            <div class="input-row">
+                <input id="statsInput" type="text" placeholder="Enter code, for example: ersw74"/>
+                <button onclick="getStats()">Get Stats</button>
+            </div>
+            <div class="result" id="statsResult"></div>
+        </div>
+    </section>
+</main>
+
+<script>
+    const BASE = 'http://localhost:4000';
+
+    function setResult(id, message, type = '') {
+        const el = document.getElementById(id);
+        el.className = `result ${type}`.trim();
+        el.innerHTML = message;
+    }
+
+    async function shorten() {
+        const url = document.getElementById('urlInput').value.trim();
+        if (!url) {
+            setResult('shortResult', 'Please enter a URL.', 'error');
+            return;
+        }
+        try {
+            const res = await fetch(BASE + '/shorten', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url})
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                setResult('shortResult', text || 'Error creating URL.', 'error');
+                return;
+            }
+            const data = await res.json();
+            const shortUrl = `${BASE}/r/${data.code}`;
+            setResult(
+                'shortResult',
+                `Short URL: <a class="link" href="${shortUrl}" target="_blank" rel="noreferrer">${shortUrl}</a>`,
+                'success'
+            );
+        } catch (err) {
+            setResult('shortResult', 'Network error while creating the URL.', 'error');
+        }
+    }
+
+    async function getStats() {
+        const code = document.getElementById('statsInput').value.trim();
+        if (!code) {
+            setResult('statsResult', 'Please enter a code.', 'error');
+            return;
+        }
+        try {
+            const res = await fetch(`${BASE}/stats/${code}`);
+            if (!res.ok) {
+                const text = await res.text();
+                setResult('statsResult', text || 'Error fetching stats.', 'error');
+                return;
+            }
+            const data = await res.json();
+            setResult('statsResult', `Code: <strong>${data.code}</strong><br>Clicks: <strong>${data.clicks}</strong>`, 'success');
+        } catch (err) {
+            setResult('statsResult', 'Network error while fetching stats.', 'error');
+        }
+    }
+</script>
+</body>
+</html>
